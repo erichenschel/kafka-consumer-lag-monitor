@@ -6,7 +6,14 @@ from lag_monitor import LagMonitor, Snapshot, Alert, AlertReason, PartitionState
 
 
 def snap(partition_id: int, producer: int, consumer: int, t: float = 0.0) -> Snapshot:
-    return Snapshot(partition_id=partition_id, producer_offset=producer, consumer_offset=consumer, timestamp=t)
+    return Snapshot(
+        partition_id=partition_id,
+        producer_offset=producer,
+        consumer_offset=consumer,
+        timestamp=t,
+        topic="test_topic",
+        consumer_group="test_group",
+    )
 
 
 def growing_snapshots(partition_id: int, start_lag: int, steps: int, step_size: int = 10) -> list[Snapshot]:

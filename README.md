@@ -88,6 +88,7 @@ The simulator uses pure arithmetic (linear rates, step functions) — no `random
 
 A full production deployment would need the following. None are implemented here — each is either called out in the spec as out of scope or would meaningfully distort the shape of a two-hour exercise.
 
+- **Richer Kafka metadata.** A real `AdminClient` returns `log_start_offset` (to detect consumers that have fallen below retention), `member_id` / `client_id` (to identify *which* consumer instance owns a partition — essential for on-call paging), and `host`. `Snapshot` models only the minimum needed to compute lag; these fields are intentionally omitted rather than carried unused.
 - **Consumer group rebalance handling.** When partitions reassign between consumers, per-partition state may need to be invalidated or transferred. Not modeled by the simulator.
 - **Time-based staleness detection.** If snapshots stop arriving for a partition, the monitor should eventually flag it. Requires a wall-clock notion; currently snapshot-driven only.
 - **Query API.** Dashboards and health endpoints would want `get_partition_state(id)` and `iter_degraded()`. The current monitor exposes observation output only.
