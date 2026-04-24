@@ -86,7 +86,9 @@ The simulator uses pure arithmetic (linear rates, step functions) — no `random
 
 ## Production considerations (out of scope)
 
-A full production deployment would need the following. None are implemented here — each is either called out in the spec as out of scope or would meaningfully distort the shape of a two-hour exercise.
+In production, consumer lag is typically monitored by existing tooling — [Burrow](https://github.com/linkedin/Burrow) (LinkedIn's consumer lag monitor) or a [Kafka Lag Exporter](https://github.com/seglo/kafka-lag-exporter) scraped by Prometheus. This implementation is a from-first-principles exercise; the OK/DEGRADED state machine maps conceptually to Burrow's OK/WARN/ERR status model.
+
+A full production deployment would also need the following. None are implemented here — each is either called out in the spec as out of scope or would meaningfully distort the shape of a two-hour exercise.
 
 - **Richer Kafka metadata.** A real `AdminClient` returns `log_start_offset` (to detect consumers that have fallen below retention), `member_id` / `client_id` (to identify *which* consumer instance owns a partition — essential for on-call paging), and `host`. `Snapshot` models only the minimum needed to compute lag; these fields are intentionally omitted rather than carried unused.
 - **Consumer group rebalance handling.** When partitions reassign between consumers, per-partition state may need to be invalidated or transferred. Not modeled by the simulator.
