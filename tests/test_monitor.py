@@ -1,7 +1,3 @@
-import time
-
-import pytest
-
 from lag_monitor import LagMonitor, Snapshot, Alert, AlertReason, PartitionState, Severity
 
 
