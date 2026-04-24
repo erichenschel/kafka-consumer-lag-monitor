@@ -49,13 +49,13 @@ class LagMonitor:
             record.state = PartitionState.DEGRADED
             record.peak_lag = lag
             reason = AlertReason.THRESHOLD_EXCEEDED if exceeds else AlertReason.CONTINUOUSLY_GROWING
-            alerts.append(self._make_alert(snapshot, PartitionState.OK, PartitionState.DEGRADED, reason, prev_lag, record))
+            alerts.append(self._make_alert(snapshot, PartitionState.OK, PartitionState.DEGRADED, reason, lag, prev_lag, record))
 
         elif prev_state == PartitionState.DEGRADED:
             record.peak_lag = max(record.peak_lag, lag)
             if not exceeds and not growing:
                 record.state = PartitionState.OK
-                alerts.append(self._make_alert(snapshot, PartitionState.DEGRADED, PartitionState.OK, AlertReason.RECOVERED, prev_lag, record))
+                alerts.append(self._make_alert(snapshot, PartitionState.DEGRADED, PartitionState.OK, AlertReason.RECOVERED, lag, prev_lag, record))
 
         for alert in alerts:
             logger.info(
@@ -98,6 +98,7 @@ class LagMonitor:
         previous_state: PartitionState,
         current_state: PartitionState,
         reason: AlertReason,
+        current_lag: int,
         previous_lag: int,
         record: PartitionRecord,
     ) -> Alert:
@@ -109,9 +110,9 @@ class LagMonitor:
             previous_state=previous_state,
             current_state=current_state,
             reason=reason,
-            current_lag=record.last_lag,
+            current_lag=current_lag,
             previous_lag=previous_lag,
-            severity=self._severity(reason, record.last_lag),
+            severity=self._severity(reason, current_lag),
             context={
                 "growth_streak": self._current_streak(record.lag_history),
                 "peak_lag": record.peak_lag,

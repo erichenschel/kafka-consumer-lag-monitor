@@ -52,7 +52,7 @@ Threshold and continuous growth catch different failure modes. A large sudden ba
 Recovery requires both conditions to be false simultaneously — not just a single below-threshold tick. This prevents false recovery alerts on noisy partitions that oscillate around the threshold.
 
 ### Bounded `deque` + `itertools.pairwise` for the growth check
-Each partition keeps a `deque(maxlen=growth_window + 1)`. N+1 points are needed to check N consecutive increases. The growth check uses `itertools.pairwise` — a single-pass iterator with zero allocation in the hot path. The rule returns `False` until the window is full, so there are no false positives on startup.
+Each partition keeps a `deque(maxlen=growth_window + 1)`. N+1 points are needed to check N consecutive increases. The growth check uses `itertools.pairwise` — a single-pass iterator with constant memory overhead per observation, instead of the O(n) list allocation that `list(history)[1:]` would require. The rule returns `False` until the window is full, so there are no false positives on startup.
 
 ### Typed `PartitionRecord` for internal state
 Internal per-partition state lives in a `PartitionRecord` dataclass, not a `dict[str, Any]`. Type-safe, self-documenting, and visible to static analysis.

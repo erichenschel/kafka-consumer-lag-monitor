@@ -9,6 +9,7 @@ Partition scenarios:
   P3 — Stalled:  consumer offset frozen from tick 15; producer keeps advancing
 """
 
+import logging
 from typing import Generator
 
 from lag_monitor.models import Snapshot
@@ -68,6 +69,16 @@ def simulate_stream(num_snapshots: int = 60) -> Generator[Snapshot, None, None]:
 
 
 if __name__ == "__main__":
+    # Enable the monitor's structured logging for the demo. In production, a JSON
+    # formatter would consume the `extra` fields attached to each LogRecord; here
+    # we show that the logger fires on every transition.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[log] %(name)s: %(message)s "
+               "pid=%(partition_id)s topic=%(topic)s reason=%(reason)s "
+               "severity=%(severity)s current_lag=%(current_lag)s",
+    )
+
     monitor = LagMonitor(threshold=50, growth_window=5)
     for snapshot in simulate_stream(num_snapshots=60):
         for alert in monitor.observe(snapshot):
