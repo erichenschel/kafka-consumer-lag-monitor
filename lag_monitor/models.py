@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TypedDict
 
 
 class PartitionState(Enum):
@@ -18,6 +18,22 @@ class Severity(Enum):
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
+
+
+class AlertContext(TypedDict):
+    """Structured context attached to every Alert for on-call triage.
+
+    Attributes:
+        growth_streak: Number of consecutive strictly-increasing lag values
+            ending at the moment of the alert. Ranges 0..growth_window.
+        peak_lag: Maximum lag observed during the current DEGRADED period;
+            resets on every OK → DEGRADED transition.
+        window_size: The configured growth_window at the time of the alert.
+    """
+
+    growth_streak: int
+    peak_lag: int
+    window_size: int
 
 
 @dataclass(frozen=True)
@@ -50,6 +66,19 @@ class Snapshot:
 
 @dataclass(frozen=True)
 class Alert:
+    """A state-transition event emitted by LagMonitor.
+
+    Alerts fire exactly once per OK → DEGRADED transition and once per
+    DEGRADED → OK transition — never while a partition sits in a stable
+    state. The `previous_state` / `current_state` pair makes the transition
+    explicit; `reason` identifies which rule fired. `context` carries the
+    structured triage fields described on AlertContext.
+
+    Note: frozen=True prevents field reassignment, but the mutable `context`
+    TypedDict contents are not deep-frozen. Callers should treat Alert
+    instances as read-only.
+    """
+
     timestamp: float
     partition_id: int
     topic: str
@@ -60,6 +89,4 @@ class Alert:
     current_lag: int
     previous_lag: int
     severity: Severity
-    # Keys: growth_streak (int), peak_lag (int), window_size (int)
-    # frozen=True prevents field reassignment; treat dict contents as read-only
-    context: dict[str, Any] = field(default_factory=dict)
+    context: AlertContext = field(default_factory=lambda: AlertContext(growth_streak=0, peak_lag=0, window_size=0))

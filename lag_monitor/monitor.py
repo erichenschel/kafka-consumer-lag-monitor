@@ -10,7 +10,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from itertools import pairwise
 
-from lag_monitor.models import Alert, AlertReason, PartitionState, Severity, Snapshot
+from lag_monitor.models import Alert, AlertContext, AlertReason, PartitionState, Severity, Snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -113,11 +113,11 @@ class LagMonitor:
             current_lag=current_lag,
             previous_lag=previous_lag,
             severity=self._severity(reason, current_lag),
-            context={
-                "growth_streak": self._current_streak(record.lag_history),
-                "peak_lag": record.peak_lag,
-                "window_size": self.growth_window,
-            },
+            context=AlertContext(
+                growth_streak=self._current_streak(record.lag_history),
+                peak_lag=record.peak_lag,
+                window_size=self.growth_window,
+            ),
         )
 
     def _severity(self, reason: AlertReason, lag: int) -> Severity:

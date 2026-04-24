@@ -15,6 +15,7 @@ from typing import Generator
 from lag_monitor.models import Snapshot
 from lag_monitor.monitor import LagMonitor
 
+NUM_PARTITIONS = 4
 PRODUCER_RATE = 10           # offsets per tick, applied to all partitions
 BASELINE_LAG = 2             # steady-state lag for healthy partitions
 P2_SPIKE_MAGNITUDE = 210     # extra lag injected into P2 at tick 30
@@ -22,6 +23,8 @@ P2_SPIKE_TICK = 30
 P2_RECOVERY_RATE = 24        # lag reduction per tick during P2 recovery (> PRODUCER_RATE)
 P1_STALL_TICK = 20
 P3_STALL_TICK = 15
+DEFAULT_TOPIC = "market_data"
+DEFAULT_CONSUMER_GROUP = "pricing_engine"
 
 
 def _p2_extra_lag(tick: int) -> int:
@@ -32,13 +35,13 @@ def _p2_extra_lag(tick: int) -> int:
 
 
 def simulate_stream(num_snapshots: int = 60) -> Generator[Snapshot, None, None]:
-    producer = {p: 0 for p in range(4)}
-    consumer = {p: 0 for p in range(4)}
+    producer = [0] * NUM_PARTITIONS
+    consumer = [0] * NUM_PARTITIONS
 
     for tick in range(num_snapshots):
         t = float(tick)
 
-        for p in range(4):
+        for p in range(NUM_PARTITIONS):
             producer[p] += PRODUCER_RATE
 
         # P0 — always keeps pace
@@ -57,14 +60,14 @@ def simulate_stream(num_snapshots: int = 60) -> Generator[Snapshot, None, None]:
             consumer[3] = producer[3] - BASELINE_LAG
         # else: consumer[3] unchanged
 
-        for p in range(4):
+        for p in range(NUM_PARTITIONS):
             yield Snapshot(
                 partition_id=p,
                 producer_offset=producer[p],
                 consumer_offset=consumer[p],
                 timestamp=t,
-                topic="market_data",
-                consumer_group="pricing_engine",
+                topic=DEFAULT_TOPIC,
+                consumer_group=DEFAULT_CONSUMER_GROUP,
             )
 
 
