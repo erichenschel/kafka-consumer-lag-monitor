@@ -25,11 +25,16 @@ class PartitionRecord:
 
 class LagMonitor:
     def __init__(self, threshold: int, growth_window: int) -> None:
+        if threshold <= 0:
+            raise ValueError("threshold must be positive")
+        if growth_window < 2:
+            raise ValueError("growth_window must be >= 2")
         self.threshold = threshold
         self.growth_window = growth_window
         self._state: dict[int, PartitionRecord] = {}
 
     def observe(self, snapshot: Snapshot) -> list[Alert]:
+        """Process a snapshot and return any alerts fired by state transitions."""
         lag = max(0, snapshot.producer_offset - snapshot.consumer_offset)
         pid = snapshot.partition_id
         record = self._get_or_create_record(pid)
