@@ -1,26 +1,26 @@
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import TypedDict
+from enum import StrEnum
 
 
-class PartitionState(Enum):
+class PartitionState(StrEnum):
     OK = "ok"
     DEGRADED = "degraded"
 
 
-class AlertReason(Enum):
+class AlertReason(StrEnum):
     THRESHOLD_EXCEEDED = "threshold_exceeded"
     CONTINUOUSLY_GROWING = "continuously_growing"
     RECOVERED = "recovered"
 
 
-class Severity(Enum):
+class Severity(StrEnum):
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
 
 
-class AlertContext(TypedDict):
+@dataclass(frozen=True)
+class AlertContext:
     """Structured context attached to every Alert for on-call triage.
 
     Attributes:
@@ -31,9 +31,9 @@ class AlertContext(TypedDict):
         window_size: The configured growth_window at the time of the alert.
     """
 
-    growth_streak: int
-    peak_lag: int
-    window_size: int
+    growth_streak: int = 0
+    peak_lag: int = 0
+    window_size: int = 0
 
 
 @dataclass(frozen=True)
@@ -74,9 +74,8 @@ class Alert:
     explicit; `reason` identifies which rule fired. `context` carries the
     structured triage fields described on AlertContext.
 
-    Note: frozen=True prevents field reassignment, but the mutable `context`
-    TypedDict contents are not deep-frozen. Callers should treat Alert
-    instances as read-only.
+    Because both Alert and AlertContext are frozen dataclasses, callers cannot
+    mutate the top-level event fields or its structured context in place.
     """
 
     timestamp: float
@@ -89,4 +88,4 @@ class Alert:
     current_lag: int
     previous_lag: int
     severity: Severity
-    context: AlertContext = field(default_factory=lambda: AlertContext(growth_streak=0, peak_lag=0, window_size=0))
+    context: AlertContext = field(default_factory=AlertContext)

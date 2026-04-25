@@ -98,7 +98,10 @@ def test_growth_rule_fires_after_n_consecutive_increases():
     for s in snapshots:
         all_alerts.extend(monitor.observe(s))
     assert len(all_alerts) == 1
-    assert all_alerts[0].reason == AlertReason.CONTINUOUSLY_GROWING
+    alert = all_alerts[0]
+    assert alert.reason == AlertReason.CONTINUOUSLY_GROWING
+    assert alert.context.growth_streak == 3
+    assert alert.context.window_size == 3
 
 
 def test_growth_rule_does_not_fire_with_plateau():
@@ -168,10 +171,11 @@ def test_simulator_integration_all_four_partitions():
     # P0 — normal, never alerts
     assert alerts_by_partition[0] == []
 
-    # P1 — stalls at tick 20, degrades via threshold, never recovers (stalled)
+    # P1 — slows at tick 20, degrades via growth before crossing threshold
     assert len(alerts_by_partition[1]) == 1
-    assert alerts_by_partition[1][0].reason == AlertReason.THRESHOLD_EXCEEDED
+    assert alerts_by_partition[1][0].reason == AlertReason.CONTINUOUSLY_GROWING
     assert alerts_by_partition[1][0].current_state == PartitionState.DEGRADED
+    assert alerts_by_partition[1][0].current_lag < monitor.threshold
 
     # P2 — spike at tick 30, degrades (CRITICAL, lag >> 2x threshold), recovers gradually
     assert len(alerts_by_partition[2]) == 2

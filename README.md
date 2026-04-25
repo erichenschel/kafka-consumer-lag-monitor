@@ -26,8 +26,8 @@ simultaneously. This prevents false recovery signals on oscillating partitions w
 introducing time-based complexity.
 
 **Immutable `Alert` schema.** Each alert is a frozen dataclass containing `topic`,
-`consumer_group`, `partition_id`, severity, and context (growth streak, peak lag,
-window size) — enough for on-call triage without a follow-up query.
+`consumer_group`, `partition_id`, severity, and a frozen context object (growth
+streak, peak lag, window size) — enough for on-call triage without a follow-up query.
 
 **Structured logging.** Standard `logging.Logger` emits transition events with partition
 metadata for drop-in integration with ELK, Splunk, or Datadog.
@@ -35,23 +35,27 @@ metadata for drop-in integration with ELK, Splunk, or Datadog.
 **Deterministic simulator.** Scenarios use pure arithmetic with fixed rates — no
 randomization — so test runs are fully reproducible and edge cases are predictable.
 
+## Quick Start
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m pytest -q
+python -m lag_monitor.simulator
+```
+
 ## Execution
 
 Run the test suite:
 ```bash
-pip install pytest
-pytest -v
-```
-
-Execute the deterministic simulator:
-```bash
-python -m lag_monitor.simulator
+python -m pytest -q
 ```
 
 Sample output:
 ```
 t=  19 | P3 |       ok → degraded | threshold_exceeded     | lag=  52 | warning  | streak=5 peak=52
-t=  24 | P1 |       ok → degraded | threshold_exceeded     | lag=  52 | warning  | streak=5 peak=52
+t=  24 | P1 |       ok → degraded | continuously_growing   | lag=  12 | warning  | streak=5 peak=12
 t=  30 | P2 |       ok → degraded | threshold_exceeded     | lag= 212 | critical | streak=1 peak=212
 t=  37 | P2 | degraded → ok       | recovered              | lag=  44 | info     | streak=0 peak=212
 ```

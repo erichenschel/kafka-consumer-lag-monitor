@@ -7,7 +7,7 @@ Not thread-safe: callers must synchronize externally if sharing an instance acro
 
 import logging
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import pairwise
 
 from lag_monitor.models import Alert, AlertContext, AlertReason, PartitionState, Severity, Snapshot
@@ -93,6 +93,11 @@ class LagMonitor:
         return lag >= self.threshold
 
     def _is_continuously_growing(self, history: deque[int]) -> bool:
+        """Return True after growth_window consecutive lag increases.
+
+        N consecutive increases require N + 1 snapshots, because each increase
+        is the difference between adjacent lag readings.
+        """
         if len(history) < self.growth_window + 1:
             return False
         return all(b > a for a, b in pairwise(history))

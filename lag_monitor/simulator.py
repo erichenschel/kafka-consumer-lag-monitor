@@ -4,7 +4,7 @@ All offsets are computed arithmetically (linear rates, step functions).
 
 Partition scenarios:
   P0 — Normal:   consumer keeps pace with producer (lag stays near 0)
-  P1 — Growing:  consumer stalls from snapshot 20; lag increases linearly
+  P1 — Growing:  consumer slows from snapshot 20; lag increases gradually
   P2 — Spike:    sudden lag spike at tick 30, decays gradually to baseline by tick 40
   P3 — Stalled:  consumer offset frozen from tick 15; producer keeps advancing
 """
@@ -21,7 +21,8 @@ BASELINE_LAG = 2             # steady-state lag for healthy partitions
 P2_SPIKE_MAGNITUDE = 210     # extra lag injected into P2 at tick 30
 P2_SPIKE_TICK = 30
 P2_RECOVERY_RATE = 24        # lag reduction per tick during P2 recovery (> PRODUCER_RATE)
-P1_STALL_TICK = 20
+P1_SLOWDOWN_TICK = 20
+P1_CONSUMER_RATE_AFTER_SLOWDOWN = 8
 P3_STALL_TICK = 15
 DEFAULT_TOPIC = "market_data"
 DEFAULT_CONSUMER_GROUP = "pricing_engine"
@@ -47,10 +48,11 @@ def simulate_stream(num_snapshots: int = 60) -> Generator[Snapshot, None, None]:
         # P0 — always keeps pace
         consumer[0] = producer[0] - BASELINE_LAG
 
-        # P1 — keeps pace until P1_STALL_TICK, then consumer freezes
-        if tick < P1_STALL_TICK:
+        # P1 — keeps pace, then continues moving slower than the producer
+        if tick < P1_SLOWDOWN_TICK:
             consumer[1] = producer[1] - BASELINE_LAG
-        # else: consumer[1] unchanged from previous tick
+        else:
+            consumer[1] += P1_CONSUMER_RATE_AFTER_SLOWDOWN
 
         # P2 — baseline with a spike at tick 30 that decays smoothly back to baseline
         consumer[2] = producer[2] - BASELINE_LAG - _p2_extra_lag(tick)
@@ -90,5 +92,5 @@ if __name__ == "__main__":
                 f"{alert.previous_state.value:>8} → {alert.current_state.value:<8} | "
                 f"{alert.reason.value:<22} | lag={alert.current_lag:>4} | "
                 f"{alert.severity.value:<8} | "
-                f"streak={alert.context['growth_streak']} peak={alert.context['peak_lag']}"
+                f"streak={alert.context.growth_streak} peak={alert.context.peak_lag}"
             )
