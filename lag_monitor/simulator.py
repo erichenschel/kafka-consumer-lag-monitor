@@ -10,7 +10,7 @@ Partition scenarios:
 """
 
 import logging
-from typing import Generator
+from collections.abc import Generator
 
 from lag_monitor.models import Snapshot
 from lag_monitor.monitor import LagMonitor
