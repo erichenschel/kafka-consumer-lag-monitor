@@ -6,12 +6,33 @@ A pure-Python library that monitors Kafka consumer lag anomalies without requiri
 live cluster. It processes offset snapshots, maintains an explicit state machine per
 partition, and emits typed `Alert` objects on state transitions.
 
+## Quick Start
+
+Requires Python 3.11+.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m pytest -q
+python -m lag_monitor.simulator
+```
+
+## Sample Output
+
+```text
+t=  19 | P3 |       ok → degraded | threshold_exceeded     | lag=  52 | warning  | streak=5 peak=52
+t=  24 | P1 |       ok → degraded | continuously_growing   | lag=  12 | warning  | streak=5 peak=12
+t=  30 | P2 |       ok → degraded | threshold_exceeded     | lag= 212 | critical | streak=1 peak=212
+t=  37 | P2 | degraded → ok       | recovered              | lag=  44 | info     | streak=0 peak=212
+```
+
 ## Design
 
 Consumer lag is `producer_offset − consumer_offset`. The monitor tracks two independent
 conditions:
 
-1. **Threshold** — lag surpasses a configured absolute value
+1. **Threshold** — lag meets or exceeds a configured absolute value
 2. **Continuously growing** — lag increases strictly across `N` consecutive snapshots
 
 **State machine over stateless checks.** Partitions move explicitly between `OK` and
@@ -30,35 +51,10 @@ introducing time-based complexity.
 streak, peak lag, window size) — enough for on-call triage without a follow-up query.
 
 **Structured logging.** Standard `logging.Logger` emits transition events with partition
-metadata for drop-in integration with ELK, Splunk, or Datadog.
+metadata attached via `extra`.
 
 **Deterministic simulator.** Scenarios use pure arithmetic with fixed rates — no
 randomization — so test runs are fully reproducible and edge cases are predictable.
-
-## Quick Start
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m pytest -q
-python -m lag_monitor.simulator
-```
-
-## Execution
-
-Run the test suite:
-```bash
-python -m pytest -q
-```
-
-Sample output:
-```
-t=  19 | P3 |       ok → degraded | threshold_exceeded     | lag=  52 | warning  | streak=5 peak=52
-t=  24 | P1 |       ok → degraded | continuously_growing   | lag=  12 | warning  | streak=5 peak=12
-t=  30 | P2 |       ok → degraded | threshold_exceeded     | lag= 212 | critical | streak=1 peak=212
-t=  37 | P2 | degraded → ok       | recovered              | lag=  44 | info     | streak=0 peak=212
-```
 
 ## Constraints
 
@@ -83,7 +79,6 @@ Lag Exporter. This implementation omits:
 
 ## AI Usage
 
-Claude pressure-tested the architecture before implementation — enumerating edge cases
-(negative lag on offset reset, dual-trigger priority, startup window behavior) and
-refining the alert schema for on-call utility. All design decisions, implementation,
-and test cases are my own. Claude served as a sounding board, not a code generator.
+AI assistance was used during design and polishing to identify edge cases, refine
+the alert schema, and review test coverage. The final behavior is captured in the
+implementation and pytest suite in this repository.
